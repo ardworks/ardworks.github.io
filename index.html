@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<!-- Playables SDK -->
+<script>// Playables SDK v1.0.0
+// Game lifecycle bridge: rAF-based game-ready detection + event communication
+(function() {
+  'use strict';
+
+  // Idempotency: skip if already initialized (e.g., server-side injection
+  // followed by client-side inject-javascript via the Bloks webview component).
+  if (window.playablesSDK) return;
+
+  var HANDLER_NAME = 'playablesGameEventHandler';
+  var ANDROID_BRIDGE_NAME = '_MetaPlayablesBridge';
+  var RAF_FRAME_THRESHOLD = 3;
+
+  var gameReadySent = false;
+  var firstInteractionSent = false;
+  var errorSent = false;
+  var frameCount = 0;
+  var originalRAF = window.requestAnimationFrame;
+
+  // --- Transport Layer ---
+
+  function hasIOSBridge() {
+    return !!(window.webkit &&
+              window.webkit.messageHandlers &&
+              window.webkit.messageHandlers[HANDLER_NAME]);
+  }
+
+  function hasAndroidBridge() {
+    return !!(window[ANDROID_BRIDGE_NAME] &&
+              typeof window[ANDROID_BRIDGE_NAME].postEvent === 'function');
+  }
+
+  function isInIframe() {
+    return !!(window.parent && window.parent !== window);
+  }
+
+  function sendEvent(eventName, payload) {
+    var message = {
+      type: eventName,
+      payload: payload || {},
+      timestamp: Date.now()
+    };
+
+    if (hasIOSBridge()) {
+      try {
+        window.webkit.messageHandlers[HANDLER_NAME].postMessage(message);
+      } catch (e) { /* ignore */ }
+      return;
+    }
+
+    if (hasAndroidBridge()) {
+    try {
+      var p = payload || {};
+      p.__secureToken = window.__fbAndroidBridgeAuthToken || '';
+      p.timestamp = message.timestamp;
+      window[ANDROID_BRIDGE_NAME].postEvent(
+        eventName,
+        JSON.stringify(p)
+      );
+    } catch (e) { /* ignore */ }
+    return;
+  }
+
+    if (isInIframe()) {
+      try {
+        window.parent.postMessage(message, '*');
+      } catch (e) { /* ignore */ }
+      return;
+    }
+  }
+
+  // --- rAF Game-Ready Detection ---
+
+  function onFrame() {
+    if (gameReadySent) return;
+
+    frameCount++;
+    if (frameCount >= RAF_FRAME_THRESHOLD) {
+      gameReadySent = true;
+      sendEvent('game_ready', {
+        frame_count: frameCount,
+        detected_at: Date.now()
+      });
+      return;
+    }
+
+    originalRAF.call(window, onFrame);
+  }
+
+  if (originalRAF) {
+    window.requestAnimationFrame = function(callback) {
+      if (!gameReadySent) {
+        return originalRAF.call(window, function(timestamp) {
+          frameCount++;
+          if (frameCount >= RAF_FRAME_THRESHOLD && !gameReadySent) {
+            gameReadySent = true;
+            sendEvent('game_ready', {
+              frame_count: frameCount,
+              detected_at: Date.now()
+            });
+          }
+          callback(timestamp);
+        });
+      }
+      return originalRAF.call(window, callback);
+    };
+  }
+
+  // --- First User Interaction Detection ---
+
+  function setupFirstInteractionDetection() {
+    var events = ['touchstart', 'mousedown', 'keydown'];
+
+    function onFirstInteraction() {
+      if (firstInteractionSent) return;
+      firstInteractionSent = true;
+      sendEvent('user_interaction_start', null);
+
+      for (var i = 0; i < events.length; i++) {
+        document.removeEventListener(events[i], onFirstInteraction, true);
+      }
+    }
+
+    for (var i = 0; i < events.length; i++) {
+      document.addEventListener(events[i], onFirstInteraction, true);
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupFirstInteractionDetection);
+  } else {
+    setupFirstInteractionDetection();
+  }
+
+  // --- Auto Error Capture ---
+
+  window.addEventListener('error', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    sendEvent('error', {
+      message: event.message || 'Unknown error',
+      source: event.filename || '',
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      auto_captured: true
+    });
+  });
+
+  window.addEventListener('unhandledrejection', function(event) {
+    if (errorSent) return;
+    errorSent = true;
+    var reason = event.reason;
+    sendEvent('error', {
+      message: (reason instanceof Error) ? reason.message : String(reason),
+      type: 'unhandled_promise_rejection',
+      auto_captured: true
+    });
+  });
+
+  // --- Public API ---
+
+  window.playablesSDK = {
+    complete: function(score) {
+      sendEvent('game_ended', {
+        score: score,
+        completed: true
+      });
+    },
+
+    error: function(message) {
+      if (errorSent) return;
+      errorSent = true;
+      sendEvent('error', {
+        message: message || 'Unknown error',
+        auto_captured: false
+      });
+    },
+
+    sendEvent: function(eventName, payload) {
+      if (!eventName || typeof eventName !== 'string') return;
+      sendEvent(eventName, payload);
+    }
+  };
+
+  // Kick off rAF detection in case no game code calls rAF immediately
+  if (originalRAF) {
+    originalRAF.call(window, onFrame);
+  }
+})();</script>
+<script>window.Intl=window.Intl||{};Intl.t=function(s){return(Intl._locale&&Intl._locale[s])||s;};</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio - Ardiansyah</title>
+<!-- Buat preview link pas di-share WA/Telegram/FB/LinkedIn -->
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ardworks.pages.dev/?v=1">
+<meta property="og:title" content="Ardiansyah - Structural & Civil Designer">
+<meta property="og:description" content="Portfolio project offshore & onshore. 13+ years experience in Oil & Gas EPC.">
+<meta property="og:image" content="https://ardworks.pages.dev/images/ard.jpg">
+
+<!-- Buat Twitter/X -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Ardiansyah - Structural & Civil Designer">
+<meta name="twitter:description" content="Portfolio project offshore & onshore. 13+ years experience in Oil & Gas EPC.">
+<meta name="twitter:image" content="https://ardworks.pages.dev/images/ard.jpg">
+
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230A4D68'/><text x='50' y='70' font-size='60' font-weight='600' text-anchor='middle' fill='white' font-family='Arial, sans-serif'>A</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="43985e48-473b-44b4-81f7-3096d6b60f07"></script>
+
+  <!-- Schema.org - Biar Google tau lo siapa -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Ardiansyah",
+    "jobTitle": "Structural & Civil Designer",
+    "description": "Structural & Civil Designer with 13+ years in Oil & Gas EPC projects covering offshore, onshore, and subsea systems from concept to As-Built",
+    "url": "https://ardworks.pages.dev",
+    "image": "https://ardworks.pages.dev/images/ard.jpg",
+    "email": "ardi297@gmail.com",
+    "telephone": "+6285719569697",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Jakarta",
+      "addressCountry": "ID"
+    },
+    "sameAs": [
+      "https://linkedin.com/in/ardi297"
+    ],
+    "knowsAbout": ["AutoCAD", "Tekla Structures", "AVEVA E3D", "Navisworks", "Structural Design", "Civil Design", "Oil & Gas EPC", "Offshore Structure", "Onshore Structure"]
+  }
+  </script>
+  <style>
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #f5f7fa;
+  --bg-card: #ffffff;
+  --bg-header: #f8f9fa;
+  --text: #333;
+  --text-muted: #5A6C7D;
+  --text-heading: #0A4D68;
+  --border: #eaeaea;
+  --border-light: #e9ecef;
+  --shadow: rgba(0,0,0,0.04);
+  --shadow-hover: rgba(0,0,0,0.08);
+}
+
+[data-theme="dark"] {
+  --bg: #0f1419;
+  --bg-card: #1a2129;
+  --bg-header: #151b22;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-heading: #4db8ff;
+  --border: #30363d;
+  --border-light: #21262d;
+  --shadow: rgba(0,0,0,0.3);
+  --shadow-hover: rgba(0,0,0,0.5);
+}
+    body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  line-height: 1.6;
+  background: var(--bg);
+  padding: 40px 20px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+ .container { max-width: 800px; margin: 0 auto; }
+    header { text-align: center; margin-bottom: 50px; }
+header { 
+  text-align: center; 
+  margin-bottom: 50px;
+  position: relative; /* Tambahin ini */
+  padding: 40px 20px;
+  background: var(--bg-header);
+  border-bottom: 1px solid var(--border-light);
+}
+.profile-pic {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--text-heading);
+  position: absolute; /* Kunci #2: foto ngambang */
+  left: 0; /* Nempel kiri */
+  top: 50%; /* Tengah vertikal */
+  transform: translateY(-50%); /* Biar bener2 pas tengah */
+}
+.header-content {
+  /* Kasih padding kiri biar teks nggak ketiban foto */
+  padding-left: 110px;
+  padding-right: 110px;
+}
+
+@media (max-width: 600px) {
+  .profile-pic { 
+    position: static; /* HP balik normal: foto di atas */
+    transform: none;
+    margin: 0 auto 15px auto;
+    display: block;
+  }
+  .header-content {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
+    h1 { font-size: 28px; color: var(--text-heading); margin-bottom: 8px; font-weight: 600; }
+    h2 { font-size: 18px; color: var(--text-muted); font-weight: 400; margin-bottom: 15px; }
+ .contact { font-size: 14px; color: var(--text-muted); }
+ .contact a { color: var(--text-heading); text-decoration: none; }
+ .summary-section {
+  margin: 30px 0 40px 0;
+}
+
+.summary-content {
+  background: var(--bg-card);
+  padding: 20px;
+  border-left: 3px solid var(--text-heading);
+  font-size: 15px;
+  color: var(--text);
+  line-height: 1.8;
+  border-radius: 4px;
+}
+ .section-title {
+      font-size: 20px;
+      color: var(--text-heading);
+      margin: 0 0 30px 0;
+      font-weight: 600;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 8px;
+    }
+ .project{
+  margin-bottom:35px;
+  padding:28px;
+  border: 1px solid var(--border);
+  border-radius:10px;
+  background: var(--bg-card);
+  box-shadow: 0 2px 10px var(--shadow);
+  transition:0.3s ease;
+}
+
+.project:hover{
+  transform:translateY(-3px);
+  box-shadow: 0 6px 20px var(--shadow-hover);
+  border-color: var(--border);
+}
+
+ .project:last-child { border-bottom: none; }
+ .project h3 {
+      font-size: 18px;
+      color: var(--text-heading);
+      margin-bottom: 8px;
+    }
+
+.project-meta{
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  text-align: left;
+  line-height: 1.7;
+}
+
+.project-meta div{
+  margin-bottom: 4px;
+}
+
+.project-meta strong{
+  color: var(--text);
+  font-weight: 600;
+  min-width: 60px;
+  display: inline-block;
+}
+
+ .project p{
+  display: none;
+}
+
+.project:hover{
+  border-color: var(--text-heading);
+  box-shadow: 0 8px 24px var(--shadow-hover);
+  transform: translateY(-3px) !important;
+}
+
+ .view-btn {
+      background: var(--text-heading);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+ .view-btn:hover { filter: brightness(0.85); }
+ .gallery-data { display: none; }
+
+    /* Lightbox */
+ .lightbox {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+    }
+ .lightbox.active { display: flex; }
+ .lightbox-content {
+      position: relative;
+      max-width: 95%;
+      max-height: 95%;
+      text-align: center;
+    }
+ .img-wrapper {
+      overflow: hidden;
+      height: 75vh;
+      width: 100%;
+      cursor: zoom-in;
+      background: #000;
+      border-radius: 8px;
+      position: relative;
+    }
+ .img-wrapper.zoomed {
+      cursor: grab;
+    }
+ .img-wrapper.zoomed:active {
+      cursor: grabbing;
+    }
+ .lightbox img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: none;
+      transform-origin: 0 0;
+      user-select: none;
+      -webkit-user-drag: none;
+      will-change: transform;
+    }
+ .lightbox-title {
+      color: white;
+      margin-top: 15px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+ .lightbox-title a {
+      color: #4db8ff;
+      text-decoration: none;
+      font-size: 13px;
+      cursor: pointer;
+    }
+ .lightbox-title a:hover { text-decoration: underline; }
+ .lightbox-counter {
+      color: #ccc;
+      margin-top: 5px;
+      font-size: 13px;
+    }
+ .zoom-hint {
+      color: #999;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+ .close,.prev,.next {
+      position: absolute;
+      color: white;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      user-select: none;
+      padding: 10px;
+      z-index: 1000;
+    }
+ .close { top: 10px; right: 25px; }
+ .prev { left: 20px; top: 50%; transform: translateY(-50%); }
+ .next { right: 20px; top: 50%; transform: translateY(-50%); }
+ .close:hover,.prev:hover,.next:hover { color: #4db8ff; }
+    @media (max-width: 600px) {
+   .prev,.next { font-size: 30px; }
+   .close { font-size: 30px; right: 15px; }
+   .img-wrapper { height: 60vh; }
+   .zoom-hint { font-size: 11px; }
+    }
+ .fade-up{
+  opacity:0;
+  transform:translateY(100px);
+  transition:
+    opacity 1.8s ease-out,
+    transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+
+  will-change: transform, opacity;
+}
+
+.fade-up.show{
+opacity:1;
+  transform:translateY(0);
+}
+
+.fade-left{
+  opacity:0;
+  transform:translateX(-100px);
+  transition:
+    opacity 1.8s ease-out,
+    transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.fade-left.show{
+  opacity:1;
+  transform:translateX(0);
+}
+
+/* FADE RIGHT */
+
+.fade-right{
+  opacity:0;
+  transform:translateX(100px);
+  transition:
+    opacity 1.8s ease-out,
+    transform 1.8s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.fade-right.show{
+  opacity:1;
+  transform:translateX(0);
+}
+ 
+  
+    /* Rata kiri-kanan biar rapih untuk deskripsi project */
+    .project-meta div {
+      text-align: left;
+      
+    }
+    .project-meta strong {
+      display: inline-block;
+      min-width: 65px; /* Biar label Client:, Scope:, Role: rata */
+    }
+
+  
+    /* Bikin label + deskripsi sejajar rapi, wrap-nya ngikut isi */
+    .project-meta div {
+      display: grid;
+      grid-template-columns: 65px 1fr;
+      gap: 8px;
+      text-align: left;
+      margin-bottom: 8px;
+    }
+    .project-meta strong {
+      min-width: unset;
+    }
+    
+    /* Khusus mobile, kasih jarak dikit biar lega */
+    @media (max-width: 480px) {
+      .project-meta div {
+        grid-template-columns: 60px 1fr;
+        gap: 6px;
+      }
+    }
+
+  </style>
+</head>
+<body>
+  <!-- Sticky Header Versi 1 + WA -->
+<div class="sticky-header" id="stickyHeader">
+  <div class="sticky-container">
+    <div class="sticky-left">
+      <img src="images/ard.jpg" alt="Ardiansyah" class="sticky-avatar">
+      <div class="sticky-info">
+        <div class="sticky-name">Ardiansyah</div>
+        <div class="sticky-title">Structural & Civil Designer</div>
+      </div>
+    </div> <!-- INI YANG KURANG -->
+
+<div class="sticky-right">
+  <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+    <span class="theme-icon">🌙</span>
+  </button>
+  <a href="files/Ardiansyah_CV_Designer.pdf" class="sticky-btn cv" target="_blank">
+    <span class="btn-text">Download CV</span>
+    <span class="btn-icon">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+        <line x1="12" y1="18" x2="12" y2="12"></line>
+        <polyline points="9 15 12 18 15 15"></polyline>
+      </svg>
+    </span>
+  </a>
+  <a href="https://wa.me/6285719569697" class="sticky-btn wa" target="_blank">
+    <span class="btn-text">WhatsApp</span>
+    <span class="btn-icon">💬</span>
+  </a>
+  <a href="mailto:ardi297@gmail.com" class="sticky-btn email">
+  <span class="btn-text">Email Me</span>
+  <span class="btn-icon">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+      <polyline points="22,6 12,13 2,6"></polyline>
+    </svg>
+  </span>
+</a>
+</div>
+</div>
+</div>
+
+  <div class="container">
+   <header>
+  <img src="images/ard.jpg" alt="Ardiansyah" class="profile-pic" id="profile-click" style="cursor: zoom-in;">
+  
+  <div class="header-content">
+    <h1>Professional Portfolio</h1>
+    <h2>Ardiansyah — Structural & Civil Designer</h2>
+
+    <div class="contact">
+  <button class="copy-email" data-email="ardi297@gmail.com">
+    <span class="email-text">ardi297@gmail.com</span>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </svg>
+  </button> |
+  <a href="https://wa.me/6285719569697" target="_blank">+62 857 1956 9697</a> |
+  <a href="https://linkedin.com/in/ardi297" target="_blank">linkedin.com/in/ardi297</a>
+</div>
+</header>
+
+<!-- AVAILABILITY BADGE -->
+<div class="availability-section fade-up">
+  <div class="availability-content">
+    <span class="avail-title">Available for:</span>
+    <span class="avail-badge">Contract</span>
+    <span class="avail-badge">Full-time</span>
+    <span class="avail-badge">Remote Coordination</span>
+  </div>
+</div>
+
+<div class="expectation-section fade-up">
+  <div class="expectation-grid two-cols">
+    <div class="expectation-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <div class="expectation-label">Notice Period</div>
+      <div class="expectation-value">1 Month</div>
+      <div class="expectation-note">A.S.A.P</div>
+    </div>
+    <div class="expectation-card">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 10c0 7-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+      </svg>
+      <div class="expectation-label">Location</div>
+      <div class="expectation-value">Jakarta, Indonesia</div>
+      <div class="expectation-note">Open to relocate & remote</div>
+    </div>
+  </div>
+</div>
+
+<!-- DOWNLOAD CV BUTTON - PISAH -->
+<div class="download-cv-section fade-up">
+  <a href="files/Ardiansyah_CV_Designer.pdf" class="download-cv-main" target="_blank">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+      <line x1="9" y1="15" x2="15" y2="15"></line>
+      <line x1="12" y1="18" x2="12" y2="12"></line>
+      <polyline points="9 15 12 18 15 15"></polyline>
+    </svg>
+    Download CV
+  </a>
+</div>
+
+    <div class="summary-section">
+  <h2 class="section-title">Summary</h2>
+  <div class="summary-content fade-up">
+      Structural & Civil Designer with 13+ years in Oil & Gas EPC projects covering offshore, onshore, and subsea systems from concept to As-Built. Proficient in AutoCAD for structural and civil drafting, with working experience in AVEVA E3D and Tekla Structures for 3D model review and multidisciplinary coordination.
+    </div>
+  </div>
+   
+    <h2 class="section-title">Project Gallery</h2>
+    <!-- PROJECT 1 -->
+<div class="project fade-up" data-gallery="paus-biru">
+  <img class="project-thumb" src="images/PLET Framing Plan-1.jpg" alt="Paus Biru Project">
+  <h3>Paus Biru Field Development – Medco Energy</h3>
+  <div class="project-meta">
+    <div><strong>Client:</strong> Medco Energy</div>
+    <div><strong>Scope:</strong> Subsea structural drawings for PLET/PLEM and topside MTO preparation</div>
+    <div><strong>Role:</strong> Structural Designer</div>
+    <div><strong>Tools:</strong> AutoCAD</div>
+  </div>
+  <div class="project-cta">
+  <button class="view-btn">View Drawings</button>
+  <a href="files/Paus-Biru-Project-Pack.pdf" class="download-project-btn" download>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Project Pack
+  </a>
+</div>
+  <div class="gallery-data">
+    <img src="images/PLET Framing Plan-1.jpg" data-title="PLET Framing Plan-1" loading="lazy">
+    <img src="images/PLET Framing Plan-2.jpg" data-title="PLET Framing Plan-2" loading="lazy">
+  </div>
+</div>
+
+<!-- PROJECT 2 -->
+<div class="project fade-up" data-gallery="mubadala">
+  <img class="project-thumb" src="images/TOPSIDE Decommisioning Sequences-1.jpg" alt="Mubadala Sebuku">
+  <h3>Platform Decommissioning – Mubadala Sebuku</h3>
+  <div class="project-meta">
+    <div><strong>Client:</strong> Mubadala Sebuku</div>
+    <div><strong>Scope:</strong> Lifting arrangements and structural removal sequences for safe offshore decommissioning</div>
+    <div><strong>Role:</strong> Structural Designer</div>
+    <div><strong>Tools:</strong> AutoCAD, Navisworks</div>
+  </div>
+  <div class="project-cta">
+  <button class="view-btn">View Drawings</button>
+  <a href="files/Mubadala-Sebuku-Pack.pdf" class="download-project-btn" download>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Project Pack
+  </a>
+</div>
+  <div class="gallery-data">
+    <img src="images/TOPSIDE Decommisioning Sequences-1.jpg" data-title="Topside Removal Sequences-1" loading="lazy">
+    <img src="images/TOPSIDE Decommisioning Sequences-2.jpg" data-title="Topside Removal Sequences-2" loading="lazy">
+    <img src="images/JACKET Decommisioning Sequences-1.jpg" data-title="Jacket Removal Sequences-1" loading="lazy">
+    <img src="images/JACKET Decommisioning Sequences-2.jpg" data-title="Jacket Removal Sequences-2" loading="lazy">
+    <img src="images/JACKET Decommisioning Sequences-3.jpg" data-title="Jacket Removal Sequences-3" loading="lazy">
+    <img src="images/JACKET Decommisioning Sequences-4.jpg" data-title="Jacket Removal Sequences-4" loading="lazy">
+  </div>
+</div>
+
+<!-- PROJECT 3 -->
+<div class="project fade-up" data-gallery="madura-bd">
+  <img class="project-thumb" src="images/Topside, Jacket, and Connection-1.jpg" alt="madura-bd">
+  <h3>Madura BD Field Development – HCML</h3>
+  <div class="project-meta">
+    <div><strong>Client:</strong> Husky-CNOOC Madura Limited (HCML)</div>
+    <div><strong>Scope:</strong> Detailed fabrication drawings for jackets and topsides, including heavy-lift installation support</div>
+    <div><strong>Role:</strong> Structural Designer</div>
+    <div><strong>Tools:</strong> AutoCAD, Tekla Structures</div>
+  </div>
+  <div class="project-cta">
+  <button class="view-btn">View Drawings</button>
+  <a href="files/HCML-Madura-BD-Pack.pdf" class="download-project-btn" download>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Project Pack
+  </a>
+</div>
+  <div class="gallery-data">
+    <img src="images/Topside, Jacket, and Connection-1.jpg" data-title="Topside, Jacket, and Connection-1" loading="lazy">
+    <img src="images/Topside, Jacket, and Connection-2.jpg" data-title="Topside, Jacket, and Connection-2" loading="lazy">
+    <img src="images/Topside, Jacket, and Connection-3.jpg" data-title="Topside, Jacket, and Connection-3" loading="lazy">
+    <img src="images/Topside, Jacket, and Connection-4.jpg" data-title="Topside, Jacket, and Connection-4" loading="lazy">
+    <img src="images/Topside, Jacket, and Connection-5.jpg" data-title="Topside, Jacket, and Connection-5" loading="lazy">
+    <img src="images/Topside, Jacket, and Connection-6.jpg" data-title="Topside, Jacket, and Connection-6" loading="lazy">
+  </div>
+</div>
+
+<!-- PROJECT 4 -->
+<div class="project fade-up" data-gallery="bentayan">
+  <img class="project-thumb" src="images/Structure & Foundation Power House-1.jpg" alt="bentayan">
+  <h3>WTIP SPU Bentayan – Pertamina EP</h3>
+  <div class="project-meta">
+    <div><strong>Client:</strong> Pertamina EP</div>
+    <div><strong>Scope:</strong> Civil and foundation works for onshore production facilities</div>
+    <div><strong>Role:</strong> Civil/Structural Designer</div>
+    <div><strong>Tools:</strong> AutoCAD</div>
+  </div>
+  <div class="project-cta">
+  <button class="view-btn">View Drawings</button>
+  <a href="files/Bentayan-WTIP-Pack.pdf" class="download-project-btn" download>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+      <polyline points="7 10 12 15 17 10"></polyline>
+      <line x1="12" y1="15" x2="12" y2="3"></line>
+    </svg>
+    Project Pack
+  </a>
+</div>
+  <div class="gallery-data">
+    <img src="images/Structure & Foundation Power House-1.jpg" data-title="Structure & Foundation Power House-1" loading="lazy">
+    <img src="images/Structure & Foundation Power House-2.jpg" data-title="Structure & Foundation Power House-2" loading="lazy">
+    <img src="images/Structure & Foundation Power House-3.jpg" data-title="Structure & Foundation Power House-3" loading="lazy">
+    <img src="images/Structure & Foundation Power House-4.jpg" data-title="Structure & Foundation Power House-4" loading="lazy">
+    <img src="images/Structure & Foundation Power House-5.jpg" data-title="Structure & Foundation Power House-5" loading="lazy">
+    <img src="images/Structure & Foundation Power House-6.jpg" data-title="Structure & Foundation Power House-6" loading="lazy">
+    <img src="images/Structure & Foundation Power House-7.jpg" data-title="Structure & Foundation Power House-7" loading="lazy">
+  </div>
+</div>
+
+  <!-- LIGHTBOX -->
+  <div class="lightbox" id="lightbox">
+    <span class="close">&times;</span>
+    <span class="prev">&#10094;</span>
+    <span class="next">&#10095;</span>
+    <div class="lightbox-content">
+      <div class="img-wrapper" id="img-wrapper">
+        <img id="lightbox-img" src="" alt="">
+      </div>
+      <div class="lightbox-title" id="lightbox-title"></div>
+      <div class="lightbox-counter" id="lightbox-counter"></div>
+      <div class="zoom-hint">Scroll untuk zoom • Klik untuk zoom 2x • Drag untuk geser</div>
+    </div>
+  </div>
+
+  <script>
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const imgWrapper = document.getElementById('img-wrapper');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    const lightboxCounter = document.getElementById('lightbox-counter');
+    const closeBtn = document.querySelector('.close');
+    const prevBtn = document.querySelector('.prev');
+    const nextBtn = document.querySelector('.next');
+
+    let currentGallery = [];
+    let currentIndex = 0;
+    let scale = 1;
+    let translateX = 0, translateY = 0;
+    let isDragging = false;
+    let startX, startY;
+    let lastX = 0, lastY = 0;
+    let dragMoved = false;
+    let clickPrevented = false;
+
+    document.querySelectorAll('.view-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const project = this.closest('.project');
+        const images = project.querySelectorAll('.gallery-data img');
+        currentGallery = Array.from(images).map(img => ({
+          src: img.src,
+          title: img.dataset.title || ''
+        }));
+        currentIndex = 0;
+        showImage();
+        lightbox.classList.add('active');
+      });
+    });
+
+    function showImage() {
+      const current = currentGallery[currentIndex];
+      lightboxImg.src = current.src;
+
+      const fileName = current.src.split('/').pop() || 'drawing.jpg';
+
+      lightboxTitle.innerHTML = `
+        ${current.title}<br>
+        <a href="#" id="download-btn">↓ Download Gambar</a>
+      `;
+      lightboxCounter.textContent = `Gambar ${currentIndex + 1} dari ${currentGallery.length}`;
+
+      document.getElementById('download-btn').onclick = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        downloadImage(current.src, fileName);
+      };
+
+      lightboxImg.onload = () => {
+        resetTransform();
+      };
+    }
+
+    async function downloadImage(url, filename) {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(blobUrl);
+        document.body.removeChild(a);
+      } catch (err) {
+        window.open(url, '_blank');
+      }
+    }
+
+    function resetTransform() {
+      scale = 1;
+      translateX = 0;
+      translateY = 0;
+      lastX = 0;
+      lastY = 0;
+      applyTransform();
+      imgWrapper.classList.remove('zoomed');
+    }
+
+    function applyTransform() {
+      lightboxImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function getPoint(e) {
+      const rect = imgWrapper.getBoundingClientRect();
+      return {
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top
+      };
+    }
+
+    function zoomAtPoint(point, newScale) {
+      const maxScale = 8;
+      const minScale = 1;
+      newScale = Math.min(Math.max(minScale, newScale), maxScale);
+
+      if (newScale === scale) return;
+
+      if (newScale <= 1.01) {
+        resetTransform();
+        return;
+      }
+
+      const scaleFactor = newScale / scale;
+      translateX = point.x - (point.x - translateX) * scaleFactor;
+      translateY = point.y - (point.y - translateY) * scaleFactor;
+
+      scale = newScale;
+      imgWrapper.classList.add('zoomed');
+      applyTransform();
+    }
+
+    // SCROLL ZOOM
+    imgWrapper.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const point = getPoint(e);
+      const delta = e.deltaY > 0? -0.2 * scale : 0.2 * scale;
+      zoomAtPoint(point, scale + delta);
+    });
+
+    // KLIK ZOOM 2X
+    imgWrapper.addEventListener('click', (e) => {
+      if (clickPrevented || dragMoved) {
+        clickPrevented = false;
+        dragMoved = false;
+        return;
+      }
+      e.stopPropagation();
+      if (scale <= 1.01) {
+        const point = getPoint(e);
+        zoomAtPoint(point, 2);
+      } else {
+        resetTransform();
+      }
+    });
+
+    // DRAG PAN
+    imgWrapper.addEventListener('mousedown', (e) => {
+      if (scale <= 1.01) return;
+      isDragging = true;
+      dragMoved = false;
+      startX = e.clientX;
+      startY = e.clientY;
+      lastX = translateX;
+      lastY = translateY;
+      e.preventDefault();
+    });
+
+    imgWrapper.addEventListener('mouseup', () => {
+      if (isDragging && dragMoved) {
+        clickPrevented = true;
+        setTimeout(() => { clickPrevented = false; }, 50);
+      }
+      isDragging = false;
+    });
+
+    imgWrapper.addEventListener('mouseleave', () => {
+      if (isDragging && dragMoved) {
+        clickPrevented = true;
+      }
+      isDragging = false;
+    });
+
+    imgWrapper.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      e.preventDefault();
+      if (Math.abs(e.clientX - startX) > 3 || Math.abs(e.clientY - startY) > 3) {
+        dragMoved = true;
+      }
+      translateX = lastX + (e.clientX - startX);
+      translateY = lastY + (e.clientY - startY);
+      applyTransform();
+    });
+
+    // TOUCH HP
+    imgWrapper.addEventListener('touchstart', (e) => {
+      if (scale <= 1.01) return;
+      isDragging = true;
+      dragMoved = false;
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      lastX = translateX;
+      lastY = translateY;
+    });
+
+    imgWrapper.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      if (Math.abs(e.touches[0].clientX - startX) > 3 || Math.abs(e.touches[0].clientY - startY) > 3) {
+        dragMoved = true;
+      }
+      translateX = lastX + (e.touches[0].clientX - startX);
+      translateY = lastY + (e.touches[0].clientY - startY);
+      applyTransform();
+    });
+
+    imgWrapper.addEventListener('touchend', () => {
+      if (dragMoved) {
+        clickPrevented = true;
+        setTimeout(() => { clickPrevented = false; }, 50);
+      }
+      isDragging = false;
+    });
+
+    closeBtn.onclick = () => {
+      lightbox.classList.remove('active');
+    }
+
+    lightbox.onclick = (e) => {
+      if(e.target === lightbox) {
+        lightbox.classList.remove('active');
+      }
+    }
+
+    prevBtn.onclick = (e) => {
+      e.stopPropagation();
+      currentIndex = (currentIndex - 1 + currentGallery.length) % currentGallery.length;
+      showImage();
+    }
+
+    nextBtn.onclick = (e) => {
+      e.stopPropagation();
+      currentIndex = (currentIndex + 1) % currentGallery.length;
+      showImage();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (!lightbox.classList.contains('active')) return;
+      if (e.key === 'Escape') {
+        lightbox.classList.remove('active');
+      }
+      if (e.key === 'ArrowLeft') prevBtn.click();
+      if (e.key === 'ArrowRight') nextBtn.click();
+    });
+
+document.getElementById('profile-click').addEventListener('click', function() {
+  currentGallery = [{
+    src: this.src,
+    title: 'Ardiansyah - Structural & Civil Designer'
+  }];
+  currentIndex = 0;
+  showImage();
+  lightbox.classList.add('active');
+});
+window.addEventListener('load', () => {
+
+  const fadeElements = document.querySelectorAll('.fade-up, .fade-left, .fade-right');
+
+  const observer = new IntersectionObserver((entries) => {
+
+    entries.forEach(entry => {
+
+      if(entry.isIntersecting){
+        entry.target.classList.add('show');
+      }
+
+    });
+
+  }, {
+    threshold: 0.15
+  });
+
+  fadeElements.forEach(el => {
+    observer.observe(el);
+  });
+
+});
+
+// Sticky Header muncul pas scroll 200px
+const stickyHeader = document.getElementById('stickyHeader');
+
+window.addEventListener('scroll', () => {
+  if (window.pageYOffset > 100) {
+    stickyHeader.classList.add('show');
+  } else {
+    stickyHeader.classList.remove('show');
+  }
+});
+
+// Back to Top Button
+document.addEventListener('DOMContentLoaded', function() {
+  const backToTop = document.getElementById('backToTop');
+  if (!backToTop) return;
+  
+  window.addEventListener('scroll', () => {
+    if (window.pageYOffset > 300) {
+      backToTop.classList.add('show');
+    } else {
+      backToTop.classList.remove('show');
+    }
+  });
+  
+  backToTop.onclick = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+});
+
+// Ganti pake ini: Auto-wrap + klik
+document.querySelectorAll('.project').forEach(project => {
+  const oldThumb = project.querySelector('.project-thumb');
+  if (oldThumb && !project.querySelector('.project-thumb-wrap')) {
+    const wrap = document.createElement('div');
+    wrap.className = 'project-thumb-wrap';
+    wrap.innerHTML = `
+      ${oldThumb.outerHTML}
+      <div class="thumb-overlay">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M1 12s4-8 11 8 11 8-4 8-11-8-11-8z"></path>
+          <circle cx="12" cy="12" r="3"></circle>
+        </svg>
+      </div>
+    `;
+    oldThumb.replaceWith(wrap);
+    wrap.addEventListener('click', () => project.querySelector('.view-btn').click());
+  }
+});
+
+// Dark Mode Toggle
+const themeToggle = document.getElementById('themeToggle');
+const themeIcon = themeToggle.querySelector('.theme-icon');
+const html = document.documentElement;
+
+const currentTheme = localStorage.getItem('theme') || 'light';
+html.setAttribute('data-theme', currentTheme);
+themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+
+themeToggle.addEventListener('click', () => {
+  const theme = html.getAttribute('data-theme');
+  const newTheme = theme === 'dark' ? 'light' : 'dark';
+  
+  html.setAttribute('data-theme', newTheme);
+  localStorage.setItem('theme', newTheme);
+  themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+});
+
+// Animate skill bars
+document.addEventListener('DOMContentLoaded', () => {
+  const skillObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        entry.target.style.width = entry.target.dataset.width;
+        skillObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.skill-fill').forEach(bar => {
+    // Kalo bar udah keliatan pas load, langsung animasi
+    const rect = bar.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) {
+      setTimeout(() => bar.style.width = bar.dataset.width, 300);
+    } else {
+      skillObserver.observe(bar);
+    }
+  });
+});
+
+// Efek glow ngikutin mouse di skill card
+document.querySelectorAll('.skill-box').forEach(card => {
+  card.addEventListener('mousemove', (e) => {
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--x', `${x}px`);
+    card.style.setProperty('--y', `${y}px`);
+  });
+});
+
+document.querySelectorAll('.copy-email').forEach(btn => {
+  btn.addEventListener('click', () => {
+    navigator.clipboard.writeText(btn.dataset.email);
+    btn.classList.add('copied');
+    setTimeout(() => btn.classList.remove('copied'), 2000);
+  });
+});
+
+// Umami Event Tracking
+document.addEventListener('DOMContentLoaded', function() {
+  
+  // Track Download CV
+  document.querySelectorAll('a[href*="Ardiansyah_CV_Designer.pdf"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.umami) umami.track('Download CV');
+    });
+  });
+
+  // Track View Project
+  document.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const projectName = btn.closest('.project').querySelector('h3').textContent.trim();
+      if (window.umami) umami.track('View Project', { project: projectName });
+    });
+  });
+
+  // Track Project Pack Download
+  document.querySelectorAll('.download-project-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const projectName = btn.closest('.project').querySelector('h3').textContent.trim();
+      if (window.umami) umami.track('Download Project Pack', { project: projectName });
+    });
+  });
+
+  // Track Contact Click
+  document.querySelectorAll('a[href^="https://wa.me"], a[href^="mailto:"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const type = btn.href.includes('wa.me') ? 'WhatsApp' : 'Email';
+      if (window.umami) umami.track('Contact Click', { type: type });
+    });
+  });
+
+  // Track LinkedIn Click
+  document.querySelectorAll('a[href*="linkedin.com/in/ardi297"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (window.umami) umami.track('Click LinkedIn');
+    });
+  });
+
+});
+
+  </script>
+
+<!-- TECHNICAL SKILLS -->
+<div class="skills-section">
+<h2 class="section-title skills-title">Technical Skills</h2>
+
+<div class="skills-grid">
+  <div class="skill-box fade-left">
+  <img src="images/AutoDesk_AutoCAD.png" alt="AutoCAD" class="skill-logo autocad-logo">
+  <h3>AutoCAD</h3>
+  <div class="skill-level-wrap">
+    <div class="skill-level-bar">
+      <div class="skill-fill" data-width="95%"></div>
+    </div>
+    <span class="skill-text expert">Expert</span>
+  </div>
+</div>
+
+  <div class="skill-box fade-up">
+    <img src="images/Tekla_Structures_Logo.png" alt="Tekla Structures" class="skill-logo">
+    <h3>Tekla Structures</h3>
+    <div class="skill-level-wrap">
+      <div class="skill-level-bar">
+        <div class="skill-fill" data-width="85%"></div>
+      </div>
+      <span class="skill-text intermediate">Intermediate</span>
+    </div>
+  </div>
+
+  <div class="skill-box fade-right">
+    <img src="images/Aveva.png" alt="AVEVA E3D" class="skill-logo">
+    <h3>AVEVA E3D</h3>
+    <div class="skill-level-wrap">
+      <div class="skill-level-bar">
+        <div class="skill-fill" data-width="80%"></div>
+      </div>
+      <span class="skill-text intermediate">Intermediate</span>
+    </div>
+  </div>
+
+  <div class="skill-box fade-left no-logo">
+    <h3>Navisworks</h3>
+    <p>Model Review, Clash Detection, Design Review Support</p>
+  </div>
+
+  <div class="skill-box fade-up no-logo">
+    <h3>MTO Preparation</h3>
+    <p>Material Take-Off, BOM Verification, Weight Estimation</p>
+  </div>
+
+  <div class="skill-box fade-right no-logo">
+    <h3>Engineering Deliverables</h3>
+    <p>GA Drawings, Fabrication Drawings, As-Built Documentation</p>
+  </div>
+</div>
+
+<style>
+.availability-section{
+  margin: 30px 0 40px 0;
+  text-align: center;
+}
+
+.availability-content{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--text-heading);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px var(--shadow);
+}
+
+.avail-title{
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-heading);
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.avail-badge{
+  font-size: 13px;
+  padding: 5px 12px;
+  background: var(--bg-header);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.avail-badge:hover{
+  border-color: var(--text-heading);
+  color: var(--text-heading);
+}
+
+[data-theme="dark"] .avail-badge{
+  background: #0f1419;
+}
+
+@media(max-width: 600px){
+  .availability-content{
+    padding: 12px 16px;
+  }
+  .avail-title{
+    width: 100%;
+    margin-bottom: 8px;
+    margin-right: 0;
+  }
+}
+
+.skills-title{
+  width:752px;
+  margin:0 auto 20px auto;
+}
+
+.skills-section{
+  width:100%;
+}
+
+.skills-grid{
+  display:grid;
+  grid-template-columns:repeat(3,240px);
+  justify-content:center;
+  gap:16px;
+  margin-top:30px;
+}
+
+@media(max-width:768px){
+  .skills-grid{
+    grid-template-columns:repeat(2,160px);
+    justify-content:center;
+  }
+  .skills-title{
+    width:100%;
+    max-width:336px;
+  }
+}
+
+@media(max-width:400px){
+  .skills-grid{
+    grid-template-columns:repeat(1,240px);
+  }
+}
+
+.skill-box{
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 20px 14px 65px 14px;
+  border-radius: 6px;
+  transition: .3s;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* Kunci #1: dorong h3 ke atas, skill-bar ke bawah */
+  text-align: center;
+  min-height: 160px; /* Kunci #2: kasih tinggi minimal biar konsisten */
+}
+
+skill-box{
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+.skill-box:hover{
+  border-color: var(--text-heading);
+  box-shadow: 0 10px 30px var(--shadow-hover);
+  transform: translateY(-3px) rotateX(2deg) rotateY(-2deg);
+}
+
+.skill-box::before{
+  content: '';
+  position: absolute;
+  top: var(--y, 0);
+  left: var(--x, 0);
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, var(--text-heading) 0%, transparent 70%);
+  opacity: 0;
+  transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.skill-box:hover::before{
+  width: 250px;
+  height: 250px;
+  opacity: 0.08;
+}
+
+.skill-box > *{
+  position: relative;
+  z-index: 1;
+}
+
+.skill-box:hover .skill-logo{
+  transform: scale(1.08) translateZ(20px);
+}
+
+.skill-logo{
+  width: auto;
+  max-width: 140px;
+  height: 50px;
+  object-fit: contain;
+  margin: auto 0; /* Kunci #3: auto margin atas-bawah = center vertikal */
+  transition: 0.3s ease;
+}
+
+/* KHUSUS AUTOCAD BIAR GEDE */
+.skill-logo.autocad-logo{
+  max-width: none;
+  width: auto;
+  height: 120px;
+  margin: auto 0;
+}
+
+.skill-box h3{
+  font-size:16px;
+  color: var(--text-heading);
+  margin-bottom: 0; /* Biar ga dobel spacing */
+  margin-top: 8px; /* Kasih jarak dikit dari logo */
+}
+
+.skill-box p{
+  font-size:13px;
+  color: var(--text-muted);
+  line-height:1.6;
+}
+
+.skill-level-wrap {
+  position: absolute;
+  bottom: 18px;
+  left: 14px;
+  right: 14px;
+  text-align: center;
+}
+
+.skill-level-bar {
+  background: var(--border-light);
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 0 auto 8px auto;
+  width: 80%;
+}
+
+.skill-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--text-heading), var(--text-heading));
+  border-radius: 3px;
+  transition: width 1.5s ease;
+  width: 0;
+}
+
+.skill-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.skill-text.expert { color: #10b981; }
+.skill-text.advanced { color: #3b82f6; }
+.skill-text.intermediate { color: #f59e0b; }
+.skill-text.beginner { color: #ef4444; }
+
+/* Buat skill tanpa logo + tanpa bar */
+.skill-box.no-logo{
+  padding: 24px 14px 24px 14px;
+  justify-content: center;
+}
+
+.skill-box.no-logo h3{
+  margin-bottom: 12px;
+}
+
+/* Dark mode: invert logo KECUALI yang ada class no-invert */
+[data-theme="dark"] .skill-logo:not(.no-invert){
+  filter: brightness(0) invert(1) contrast(0.8);
+}
+
+/* Logo AutoCAD biar ga di-invert pas dark mode */
+[data-theme="dark"] .skill-logo.no-invert{
+  filter: none;
+}
+
+    /* Rata kiri-kanan biar rapih untuk deskripsi project */
+    .project-meta div {
+      text-align: left;
+      
+    }
+    .project-meta strong {
+      display: inline-block;
+      min-width: 65px; /* Biar label Client:, Scope:, Role: rata */
+    }
+
+  
+    /* Bikin label + deskripsi sejajar rapi, wrap-nya ngikut isi */
+    .project-meta div {
+      display: grid;
+      grid-template-columns: 65px 1fr;
+      gap: 8px;
+      text-align: left;
+      margin-bottom: 8px;
+    }
+    .project-meta strong {
+      min-width: unset;
+    }
+    
+    /* Khusus mobile, kasih jarak dikit biar lega */
+    @media (max-width: 480px) {
+      .project-meta div {
+        grid-template-columns: 60px 1fr;
+        gap: 6px;
+      }
+    }
+
+  </style>
+	<section class="contact-closing">
+  <h2>Get In Touch</h2>
+  <p>
+    Thank you for visiting my portfolio.
+I’m currently open to new opportunities and engineering collaborations.
+
+  </p>
+</section>
+
+<!-- Footer -->
+<footer class="footer-simple">
+  <p>&copy; 2026 Ardiansyah. Structural & Civil Designer. All Rights Reserved.</p>
+</footer>
+
+<!-- Back to Top Button -->
+<button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+
+<style>
+
+/* Contact Closing */
+.contact-closing {
+  text-align: center;
+  padding: 80px 20px 50px 20px;
+  margin-top: 60px;
+  border-top: 1px solid var(--border-light);
+  background: var(--bg-header);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.contact-closing h2 {
+  font-size: 32px;
+  color: var(--text-heading);
+  margin: 0 0 20px 0;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+.contact-closing p {
+  font-size: 17px;
+  color: var(--text);
+  max-width: 680px;
+  margin: 0 auto;
+  line-height: 1.8;
+  font-weight: 400;
+}
+
+/* Footer */
+.footer-simple {
+  text-align: center;
+  padding: 24px 20px;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: var(--bg-header);
+  border-top: 1px solid var(--border-light);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.footer-simple p {
+  margin: 0;
+}
+
+.footer{
+  text-align:center;
+  padding:30px 20px;
+  margin-top:60px;
+  color:#777;
+  font-size:13px;
+  border-top:1px solid #eee;
+}
+
+/* Sticky Header */
+.sticky-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  z-index: 998;
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+}
+
+.sticky-header.show {
+  transform: translateY(0);
+}
+
+.sticky-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sticky-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.sticky-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sticky-info {
+  min-width: 0;
+}
+
+.sticky-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sticky-title {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sticky-right {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sticky-btn {
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sticky-btn.email {
+  background: var(--text-heading);
+  color: #fff;
+  border: 1px solid var(--text-heading);
+}
+
+.sticky-btn.email:hover {
+  background: #083d52;
+}
+
+.sticky-btn.wa {
+  background: #25D366;
+  color: #fff;
+  border: 1px solid #25D366;
+}
+
+.sticky-btn.wa:hover {
+  background: #1ebe5d;
+}
+
+.sticky-btn.cv {
+  background: #0A4D68;
+  color: #fff;
+  border: 1px solid #0A4D68;
+}
+
+.sticky-btn.cv:hover {
+  background: #083d52;
+  border-color: #083d52;
+}
+
+.sticky-btn.cv .btn-icon svg {
+  vertical-align: middle;
+}
+
+@media (max-width: 580px) {
+  .sticky-btn.cv .btn-text {
+    display: none;
+  }
+  .sticky-btn.cv .btn-icon {
+    display: inline;
+  }
+}
+
+.theme-toggle {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 18px;
+}
+.theme-toggle:hover {
+  background: var(--border-light);
+  transform: scale(1.05);
+}
+
+.btn-icon {
+  display: none;
+  font-size: 16px;
+  line-height: 1;
+}
+
+@media (max-width: 600px) {
+  .sticky-container {
+    padding: 10px 15px;
+    gap: 12px;
+  }
+  .sticky-avatar {
+    width: 28px;
+    height: 28px;
+  }
+  .sticky-name {
+    font-size: 13px;
+  }
+  .sticky-title {
+    font-size: 11px;
+  }
+  .sticky-btn {
+    padding: 7px 10px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 440px) {
+  .sticky-btn.wa .btn-text {
+    display: none;
+  }
+  .sticky-btn.wa .btn-icon {
+    display: inline;
+  }
+  .sticky-btn.wa {
+    padding: 7px 9px;
+  }
+}
+
+@media (max-width: 380px) {
+  .sticky-title {
+    display: none;
+  }
+}
+
+/* Back to Top Button */
+.back-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--text-heading);
+  color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  display: none;
+  z-index: 999;
+  box-shadow: 0 4px 12px var(--shadow);
+  transition: all 0.3s ease;
+  line-height: 45px;
+  text-align: center;
+}
+.back-to-top:hover {
+  background: #083d52;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px var(--shadow-hover);
+}
+.back-to-top.show {
+  display: block;
+  animation: fadeInUp 0.3s ease;
+}
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 600px) {
+  .back-to-top {
+    bottom: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+    line-height: 40px;
+  }
+}
+
+.contact a {
+  color: var(--text-heading);
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s ease;
+}
+.contact a::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--text-heading);
+  transition: width 0.3s ease;
+}
+.contact a:hover {
+  color: var(--text-heading);
+}
+.contact a:hover::after {
+  width: 100%;
+}
+
+.copy-email{
+  background: none;
+  border: none;
+  color: var(--text-heading);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  position: relative;
+}
+.copy-email:hover{
+  text-decoration: underline;
+}
+.copy-email.copied::after{
+  content: 'Copied!';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text-heading);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  white-space: nowrap;
+  margin-bottom: 6px;
+}
+
+.project {
+  position: relative;
+  overflow: hidden; /* biar blur nggak luber */
+}
+.project-thumb-wrap {
+  position: relative;
+  width: calc(100% + 56px);
+  margin: -28px -28px 20px -28px;
+  height: 160px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.project-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(8px) brightness(0.6);
+  transform: scale(1.1);
+  transition: 0.4s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.thumb-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(10, 77, 104, 0.9);
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: 0.3s ease;
+  pointer-events: none;
+}
+.project:hover .project-thumb {
+  filter: blur(3px) brightness(0.8);
+  transform: scale(1.05);
+}
+.project:hover .thumb-overlay {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* GRAIN/NOISE TEXTURE BUAT DARK MODE */
+[data-theme="dark"] body::before{
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* Biar ga tabrakan sama lightbox */
+[data-theme="dark"] .lightbox{
+  z-index: 9999;
+}
+
+/* DOWNLOAD CV SECTION - PISAH */
+.download-cv-section{
+  text-align: center;
+  margin: 0 0 40px 0;
+}
+
+.download-cv-main{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  background: var(--text-heading);
+  color: #fff;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  border: 2px solid var(--text-heading);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.download-cv-main:hover{
+  filter: brightness(0.85);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px var(--shadow-hover);
+}
+
+.download-cv-main svg{
+  flex-shrink: 0;
+}
+
+@media(max-width: 600px){
+  .download-cv-main{
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.expectation-section{
+  margin: 30px 0 40px 0;
+}
+.expectation-grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.expectation-grid.two-cols{
+  grid-template-columns: repeat(2, 1fr);
+  max-width: 520px;
+  margin: 0 auto;
+}
+.expectation-card{
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 20px 16px;
+  border-radius: 8px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.expectation-card:hover{
+  border-color: var(--text-heading);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px var(--shadow-hover);
+}
+.expectation-card svg{
+  color: var(--text-heading);
+  margin-bottom: 12px;
+}
+.expectation-label{
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.expectation-value{
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.expectation-note{
+  font-size: 11px;
+  color: var(--text-muted);
+}
+@media(max-width: 700px){
+  .expectation-grid,
+  .expectation-grid.two-cols{
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Default: icon disembunyikan di desktop */
+.sticky-btn.email .btn-icon{
+  display: none;
+}
+
+/* HP < 440px: text hilang, icon muncul */
+@media (max-width: 440px) {
+  .sticky-btn.email .btn-text {
+    display: none;
+  }
+  .sticky-btn.email .btn-icon {
+    display: inline;
+  }
+  .sticky-btn.email {
+    padding: 7px 9px;
+  }
+  .sticky-btn.email .btn-icon svg {
+    vertical-align: middle;
+  }
+}
+
+/* Project CTA - View + Download buttons */
+.project-cta{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 18px;
+}
+.download-project-btn{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  cursor: pointer;
+}
+.download-project-btn:hover{
+  background: var(--text-heading);
+  color: white;
+  border-color: var(--text-heading);
+  transform: translateY(-1px);
+}
+@media(max-width: 480px){
+  .project-cta{
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .view-btn, .download-project-btn{
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+    /* Rata kiri-kanan biar rapih untuk deskripsi project */
+    .project-meta div {
+      text-align: left;
+      
+    }
+    .project-meta strong {
+      display: inline-block;
+      min-width: 65px; /* Biar label Client:, Scope:, Role: rata */
+    }
+
+  
+    /* Bikin label + deskripsi sejajar rapi, wrap-nya ngikut isi */
+    .project-meta div {
+      display: grid;
+      grid-template-columns: 65px 1fr;
+      gap: 8px;
+      text-align: left;
+      margin-bottom: 8px;
+    }
+    .project-meta strong {
+      min-width: unset;
+    }
+    
+    /* Khusus mobile, kasih jarak dikit biar lega */
+    @media (max-width: 480px) {
+      .project-meta div {
+        grid-template-columns: 60px 1fr;
+        gap: 6px;
+      }
+    }
+
+  </style>
+</body>
+</html>
